@@ -22,7 +22,8 @@ public class WebSocketConfig
 
         registry.addEndpoint("/ws")
                 .addInterceptors(jwtHandshakeInterceptor)
-                .setAllowedOriginPatterns("*")
+                .setAllowedOriginPatterns("http://localhost:5173",
+                        "https://vv-frontend-xi.vercel.app")
                 .withSockJS();
     }
 
