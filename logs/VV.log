@@ -2050,3 +2050,18 @@ Caused by: org.hibernate.HibernateException: Unable to determine Dialect without
 2026-07-14 01:51:20.553 [http-nio-8080-exec-8] INFO  c.e.c.m.s.MessageReceiptService - [FIND_PENDING_DELIVERY_EVENTS_SUCCESS] userId=1 count=0
 2026-07-14 01:51:20.553 [http-nio-8080-exec-8] INFO  c.e.c.s.ChatOrchestrationService - [MARK_ALL_DELIVERED_SKIP] No pending receipts. userId=1
 2026-07-14 01:52:13.357 [MessageBroker-1] INFO  o.s.w.s.c.WebSocketMessageBrokerStats - WebSocketSession[2 current WS(2)-HttpStream(0)-HttpPoll(0), 2 total, 0 closed abnormally (0 connect failure, 0 send limit, 0 transport error)], stompSubProtocol[processed CONNECT(2)-CONNECTED(2)-DISCONNECT(0)], stompBrokerRelay[null], inboundChannel[pool size = 24, active threads = 0, queued tasks = 0, completed tasks = 48], outboundChannel[pool size = 3, active threads = 0, queued tasks = 0, completed tasks = 3], sockJsScheduler[pool size = 1, active threads = 1, queued tasks = 0, completed tasks = 0]
+2026-07-14 02:20:24.859 [http-nio-8080-exec-6] DEBUG o.s.security.web.FilterChainProxy - Securing POST /api/v1/auth/logout
+2026-07-14 02:20:25.433 [http-nio-8080-exec-6] DEBUG o.s.security.web.FilterChainProxy - Secured POST /api/v1/auth/logout
+2026-07-14 02:20:26.060 [http-nio-8080-exec-6] INFO  c.example.auth.service.AuthService - All refresh tokens revoked for phone=9123619255
+2026-07-14 02:20:27.531 [http-nio-8080-exec-9] INFO  c.e.w.service.PresenceService - [USER_OFFLINE] userId=1
+2026-07-14 02:20:36.727 [http-nio-8080-exec-1] DEBUG o.s.security.web.FilterChainProxy - Securing POST /api/v1/auth/logout
+2026-07-14 02:20:37.287 [http-nio-8080-exec-1] DEBUG o.s.security.web.FilterChainProxy - Secured POST /api/v1/auth/logout
+2026-07-14 02:20:37.843 [http-nio-8080-exec-1] INFO  c.example.auth.service.AuthService - All refresh tokens revoked for phone=7042207309
+2026-07-14 02:20:38.992 [http-nio-8080-exec-4] INFO  c.e.w.service.PresenceService - [USER_OFFLINE] userId=2
+2026-07-14 02:22:13.360 [MessageBroker-1] INFO  o.s.w.s.c.WebSocketMessageBrokerStats - WebSocketSession[0 current WS(0)-HttpStream(0)-HttpPoll(0), 2 total, 0 closed abnormally (0 connect failure, 0 send limit, 0 transport error)], stompSubProtocol[processed CONNECT(2)-CONNECTED(2)-DISCONNECT(2)], stompBrokerRelay[null], inboundChannel[pool size = 0, active threads = 0, queued tasks = 0, completed tasks = 681], outboundChannel[pool size = 0, active threads = 0, queued tasks = 0, completed tasks = 8], sockJsScheduler[pool size = 2, active threads = 1, queued tasks = 0, completed tasks = 1]
+2026-07-14 02:27:31.860 [SpringApplicationShutdownHook] INFO  o.s.m.s.b.SimpleBrokerMessageHandler - Stopping...
+2026-07-14 02:27:31.861 [SpringApplicationShutdownHook] INFO  o.s.m.s.b.SimpleBrokerMessageHandler - BrokerAvailabilityEvent[available=false, SimpleBrokerMessageHandler [org.springframework.messaging.simp.broker.DefaultSubscriptionRegistry@6f640af8]]
+2026-07-14 02:27:31.861 [SpringApplicationShutdownHook] INFO  o.s.m.s.b.SimpleBrokerMessageHandler - Stopped.
+2026-07-14 02:27:31.869 [SpringApplicationShutdownHook] INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean - Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-07-14 02:27:31.871 [SpringApplicationShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource - VVHikariPool - Shutdown initiated...
+2026-07-14 02:27:32.072 [SpringApplicationShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource - VVHikariPool - Shutdown completed.
