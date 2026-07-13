@@ -1,0 +1,122 @@
+spring:
+
+  config:
+    import: optional:application-secrets.yml
+  application:
+    name: VV
+
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+
+  data:
+    redis:
+      url: ${REDIS_URL}
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      pool-name: VVHikariPool
+      maximum-pool-size: 5
+      minimum-idle: 2
+      idle-timeout: 30000
+      connection-timeout: 20000
+      max-lifetime: 1800000
+
+  jpa:
+    hibernate:
+      ddl-auto: ${DDL_AUTO:validate}
+    show-sql: false
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+        jdbc:
+          batch_size: 25
+        order_inserts: true
+        order_updates: true
+
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+      fail-on-empty-beans: false
+    deserialization:
+      fail-on-unknown-properties: false
+    default-property-inclusion: non_null
+    time-zone: Asia/Kolkata
+
+server:
+  port: ${SERVER_PORT:8080}
+  servlet:
+    context-path: /
+  compression:
+    enabled: true
+    mime-types: application/json
+    min-response-size: 1024
+  error:
+    include-message: never
+    include-binding-errors: never
+    include-stacktrace: never
+    include-exception: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when-authorized
+  info:
+    env:
+      enabled: true
+
+info:
+  app:
+    name: VV
+    description: a strong secure messaging system
+    version: 1.0.0
+
+VV:
+  otp:
+    expiry-minutes: 5
+    max-attempts: 3
+  sms:
+    mock: ${SMS_MOCK:true}
+    provider-url: ${SMS_PROVIDER_URL:}
+    api-key: ${SMS_API_KEY:}
+  jwt:
+    secret: ${JWT_SECRET}
+    expiry-ms: 86400000
+
+logging:
+  level:
+    root: INFO
+    com.example: INFO
+    org.springframework.security: WARN
+    org.hibernate.SQL: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/VV.log
+  logback:
+    rollingpolicy:
+      max-file-size: 10MB
+      max-history: 30
+
+app:
+  security:
+    public-urls:
+      - /login
+      - /css/**
+      - /js/**
+      - /api/v1/auth/send-otp
+      - /api/v1/auth/verify-otp
+      - /api/v1/auth/refresh
+      - /actuator/health
+      - /ws/**
+      - /favicon.ico

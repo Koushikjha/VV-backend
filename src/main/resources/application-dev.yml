@@ -1,0 +1,22 @@
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+
+VV:
+  otp:
+    expiry-minutes: 5
+    max-attempts: 3
+  sms:
+    mock: true
+  jwt:
+    secret: ${JWT_SECRET}
+    expiry-ms: 86400000
+
+logging:
+  level:
+    com.example: DEBUG
+    org.springframework.security: DEBUG
+    org.hibernate.SQL: WARN
+    org.hibernate.type.descriptor.sql: WARN
