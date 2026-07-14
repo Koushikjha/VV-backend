@@ -1,133 +1,149 @@
 package com.example.auth.controller;
 
-import com.example.auth.dto.*;
+import com.example.auth.dto.AuthResponse;
+import com.example.auth.dto.RefreshTokenRequest;
+import com.example.auth.dto.SendOtpRequest;
+import com.example.auth.dto.VerifyOtpRequest;
 import com.example.auth.service.AuthService;
 import com.example.auth.service.OnlineUserTracker;
-import com.example.user.entity.User;
-import com.example.user.service.UserService;
-import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Duration;
+
 @RestController
 @RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
 public class AuthController {
 
+    private static final String JWT_COOKIE_NAME = "JWT_TOKEN";
+
     private final AuthService authService;
-
-    private final UserService userService;
-
     private final OnlineUserTracker onlineUserTracker;
 
     /**
-     * Step 1 — request OTP.
-     * Accepts both JSON (API) and form POST (browser login page).
+     * Request an OTP.
+     *
+     * Prefer one request format rather than supporting JSON and form data
+     * in the same endpoint unless form submission is genuinely required.
      */
-    @PostMapping(value = "/send-otp",
-            consumes = {"application/json", "application/x-www-form-urlencoded"})
+    @PostMapping(
+            value = "/send-otp",
+            consumes = "application/json"
+    )
     public ResponseEntity<Void> sendOtp(
-            @Valid @RequestBody(required = false) SendOtpRequest jsonRequest,
-            @RequestParam(required = false) String phone) {
+            @Valid @RequestBody SendOtpRequest request) {
 
-        SendOtpRequest req = jsonRequest;
-        if (req == null) {
-            req = new SendOtpRequest();
-            req.setPhone(phone);
-        }
-        authService.sendOtp(req);
-        return ResponseEntity.ok().build();
+        authService.sendOtp(request);
+        return ResponseEntity.noContent().build();
     }
 
     /**
-     * Step 2 — verify OTP and receive JWT.
-     * Sets JWT as HttpOnly cookie so the browser can use it,
-     * and also returns JSON for API clients.
+     * Verify an OTP and create the authentication cookie.
      */
-    @PostMapping(value = "/verify-otp",
-            consumes = {"application/json", "application/x-www-form-urlencoded"})
+    @PostMapping(
+            value = "/verify-otp",
+            consumes = "application/json"
+    )
     public ResponseEntity<AuthResponse> verifyOtp(
-            @Valid @RequestBody(required = false) VerifyOtpRequest jsonRequest,
-            @RequestParam(required = false) String phone,
-            @RequestParam(required = false) String otp,
-            @RequestParam(required = false) String fullName,
-            @RequestParam(required = false) String handleName,
-            HttpServletRequest request,
+            @Valid @RequestBody VerifyOtpRequest request,
             HttpServletResponse response) {
 
-        VerifyOtpRequest req = jsonRequest;
-        if (req == null) {
-            req = new VerifyOtpRequest();
-            req.setPhone(phone);
-            req.setOtp(otp);
-            req.setFullName(fullName);
-            req.setHandleName(handleName);
-        }
+        AuthResponse auth = authService.verifyOtp(request);
 
-        AuthResponse auth = authService.verifyOtp(req);
+        ResponseCookie accessCookie = createAccessTokenCookie(
+                auth.getAccessToken(),
+                Duration.ofSeconds(auth.getExpiresIn())
+        );
 
-        // Set JWT cookie so browser pages are authenticated
-        ResponseCookie cookie = ResponseCookie.from("JWT_TOKEN", auth.getAccessToken())
-                .httpOnly(true)
-                .secure(false)        // true if HTTPS
-                .path("/")
-                .sameSite("Lax")
-                .maxAge(auth.getExpiresIn())
-                .build();
-
-        response.addHeader("Set-Cookie", cookie.toString());
-
-        // If this was a browser form POST, redirect to home
-        String accept = request.getHeader("Accept");
-        if (accept == null || !accept.contains("application/json")) {
-            try {
-                response.sendRedirect("/home");
-                return null;
-            } catch (Exception ignored) {}
-        }
+        response.addHeader(
+                HttpHeaders.SET_COOKIE,
+                accessCookie.toString()
+        );
 
         return ResponseEntity.ok(auth);
     }
 
-    @PostMapping("/refresh")
+    /**
+     * Refresh authentication.
+     *
+     * This version assumes the refresh token is supplied in the body.
+     * A secure HttpOnly refresh-token cookie is generally safer for a
+     * browser application.
+     */
+    @PostMapping(
+            value = "/refresh",
+            consumes = "application/json"
+    )
     public ResponseEntity<AuthResponse> refresh(
-            @Valid @RequestBody RefreshTokenRequest request) {
-        return ResponseEntity.ok(authService.refresh(request));
+            @Valid @RequestBody RefreshTokenRequest request,
+            HttpServletResponse response) {
+
+        AuthResponse auth = authService.refresh(request);
+
+        ResponseCookie accessCookie = createAccessTokenCookie(
+                auth.getAccessToken(),
+                Duration.ofSeconds(auth.getExpiresIn())
+        );
+
+        response.addHeader(
+                HttpHeaders.SET_COOKIE,
+                accessCookie.toString()
+        );
+
+        return ResponseEntity.ok(auth);
     }
 
+    /**
+     * Logout and expire the browser cookie.
+     */
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(
             @AuthenticationPrincipal UserDetails userDetails,
             HttpServletResponse response) {
 
         if (userDetails != null) {
-            authService.logout(userDetails.getUsername());
-            onlineUserTracker.userLoggedOut(userDetails.getUsername());
+            String phone = userDetails.getUsername();
+
+            authService.logout(phone);
+            onlineUserTracker.userLoggedOut(phone);
         }
 
-        // 🔥 Bulletproof delete — EXACT match of how browser stored it
-        response.setHeader("Set-Cookie",
-                "JWT_TOKEN=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax");
+        ResponseCookie deletedCookie = ResponseCookie
+                .from(JWT_COOKIE_NAME, "")
+                .httpOnly(true)
+                .secure(true)
+                .sameSite("None")
+                .path("/")
+                .maxAge(Duration.ZERO)
+                .build();
+
+        response.addHeader(
+                HttpHeaders.SET_COOKIE,
+                deletedCookie.toString()
+        );
 
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("/api/v1/auth/me")
-    public ResponseEntity<MeResponse> me(
-            @AuthenticationPrincipal UserDetails userDetails) {
+    private ResponseCookie createAccessTokenCookie(
+            String accessToken,
+            Duration maxAge) {
 
-        User user = userService.findByPhone(userDetails.getUsername());
-
-        return ResponseEntity.ok(MeResponse.builder()
-                .phone(user.getPhone())
-                .profileComplete(user.isProfileComplete())
-                .build());
+        return ResponseCookie
+                .from(JWT_COOKIE_NAME, accessToken)
+                .httpOnly(true)
+                .secure(true)
+                .sameSite("None")
+                .path("/")
+                .maxAge(maxAge)
+                .build();
     }
 }
