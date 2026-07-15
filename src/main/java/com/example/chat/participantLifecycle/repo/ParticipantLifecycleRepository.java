@@ -1,7 +1,6 @@
 package com.example.chat.participantLifecycle.repo;
 
 import com.example.chat.participantLifecycle.entity.ParticipantLifecycle;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -13,79 +12,99 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface ParticipantLifecycleRepository extends JpaRepository<ParticipantLifecycle,Long> {
+public interface ParticipantLifecycleRepository
+        extends JpaRepository<ParticipantLifecycle, Long> {
 
-    boolean existsByConversationIdAndUserIdAndLeftAtIsNull(Long conversationId, Long userId);
+    boolean existsByConversationIdAndUserIdAndLeftAtIsNull(
+            Long conversationId,
+            Long userId
+    );
 
-
-    Optional<ParticipantLifecycle> findByConversationIdAndUserIdAndLeftAtIsNull(
+    Optional<ParticipantLifecycle>
+    findByConversationIdAndUserIdAndLeftAtIsNull(
             Long conversationId,
             Long userId
     );
 
     @Modifying
     @Query("""
-    update ParticipantLifecycle p
-    set p.leftAt = :now
-    where p.conversationId = :conversationId
-      and p.userId = :userId
-      and p.leftAt is null
-""")
-    int endLifecycle(@Param("conversationId") Long conversationId,
-                     @Param("userId") Long userId,
-                     @Param("now") LocalDateTime now);
-
-
+            UPDATE ParticipantLifecycle p
+            SET p.leftAt = :now
+            WHERE p.conversationId = :conversationId
+              AND p.userId = :userId
+              AND p.leftAt IS NULL
+            """)
+    int endLifecycle(
+            @Param("conversationId") Long conversationId,
+            @Param("userId") Long userId,
+            @Param("now") LocalDateTime now
+    );
 
     @Query("""
-    SELECT p FROM ParticipantLifecycle p
-    WHERE p.conversationId = :conversationId
-      AND p.joinedAt >= :convStart
-      AND p.userId = :userId
-      AND (:convEnd IS NULL OR p.leftAt <= :convEnd)
-""")
+            SELECT p
+            FROM ParticipantLifecycle p
+            WHERE p.conversationId = :conversationId
+              AND p.joinedAt >= :convStart
+              AND p.userId = :userId
+              AND (
+                    p.leftAt IS NULL
+                    OR p.leftAt <= COALESCE(:convEnd, p.leftAt)
+                  )
+            ORDER BY p.joinedAt ASC
+            """)
     List<ParticipantLifecycle> findByConversationAndTimeWindow(
-            Long conversationId,
-            LocalDateTime convStart,
-            LocalDateTime convEnd,
-            Long userId
+            @Param("conversationId") Long conversationId,
+            @Param("convStart") LocalDateTime convStart,
+            @Param("convEnd") LocalDateTime convEnd,
+            @Param("userId") Long userId
     );
 
     @Query("""
-    SELECT p
-    FROM ParticipantLifecycle p
-    WHERE p.id = :plId
-      AND p.userId = :userId
-""")
-    Optional<ParticipantLifecycle> findByIdAndUserId(Long plId, Long userId);
+            SELECT p
+            FROM ParticipantLifecycle p
+            WHERE p.id = :plId
+              AND p.userId = :userId
+            """)
+    Optional<ParticipantLifecycle> findByIdAndUserId(
+            @Param("plId") Long plId,
+            @Param("userId") Long userId
+    );
 
     @Query("""
-    SELECT p FROM ParticipantLifecycle p
-    WHERE p.userId = :userId
-      AND p.leftAt IS NULL
-""")
-    List<ParticipantLifecycle> findActiveByUser(Long userId);
+            SELECT p
+            FROM ParticipantLifecycle p
+            WHERE p.userId = :userId
+              AND p.leftAt IS NULL
+            """)
+    List<ParticipantLifecycle> findActiveByUser(
+            @Param("userId") Long userId
+    );
 
     @Query("""
-    SELECT CASE WHEN COUNT(pl) > 0 THEN true ELSE false END
-    FROM ParticipantLifecycle pl
-    WHERE pl.conversationId = :conversationId
-      AND pl.userId = :userId
-      AND pl.leftAt IS NULL
-""")
-    boolean existsActiveParticipant(Long conversationId, Long userId);
+            SELECT CASE
+                WHEN COUNT(pl) > 0 THEN true
+                ELSE false
+            END
+            FROM ParticipantLifecycle pl
+            WHERE pl.conversationId = :conversationId
+              AND pl.userId = :userId
+              AND pl.leftAt IS NULL
+            """)
+    boolean existsActiveParticipant(
+            @Param("conversationId") Long conversationId,
+            @Param("userId") Long userId
+    );
 
     @Query("""
-        SELECT pl FROM ParticipantLifecycle pl
-        WHERE pl.conversationId = :conversationId
-          AND pl.userId = :userId
-          AND pl.leftAt IS NOT NULL
-        ORDER BY pl.leftAt DESC
-    """)
+            SELECT pl
+            FROM ParticipantLifecycle pl
+            WHERE pl.conversationId = :conversationId
+              AND pl.userId = :userId
+              AND pl.leftAt IS NOT NULL
+            ORDER BY pl.leftAt DESC
+            """)
     List<ParticipantLifecycle> findLastClosedLifecycle(
-            Long conversationId,
-            Long userId
+            @Param("conversationId") Long conversationId,
+            @Param("userId") Long userId
     );
-
-
 }

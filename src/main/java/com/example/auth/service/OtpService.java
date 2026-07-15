@@ -56,7 +56,7 @@ public class OtpService {
 
     @Transactional
     public void verify(String phone, String otp) {
-        OtpRecord record = otpRepository.findLatestValidOtp(phone)
+        OtpRecord record = otpRepository.findFirstByPhoneAndVerifiedFalseAndExpiresAtAfterOrderByCreatedAtDesc(phone,LocalDateTime.now())
                 .orElseThrow(() -> new IllegalArgumentException(
                         "No valid OTP found for this number. " +
                                 "Please request a new OTP."));
